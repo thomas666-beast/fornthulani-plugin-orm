@@ -1,7 +1,7 @@
 # fornthulani-plugin-orm
 
 Eloquent-style models, query builder and migrations for
-[fornthulani](../fornthulani). SQLite driver included (bundled); other
+[fornthulani](https://github.com/thomas666-beast/fornthulani). SQLite driver included (bundled); other
 databases implement the small `Connection` trait.
 
 ```rust
