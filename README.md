@@ -125,6 +125,3 @@ Both rules fail closed if the database cannot be queried.
   use `has_many().get()`; watch for N+1.
 - `Schema::has_table` is SQLite-specific.
 
-Status: **not compiled yet** — written without a Rust toolchain. Run
-`cargo fmt && cargo clippy --all-targets --all-features && cargo test --all-features`
-and report errors.
