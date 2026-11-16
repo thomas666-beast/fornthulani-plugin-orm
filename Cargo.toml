@@ -1,0 +1,26 @@
+[package]
+name = "fornthulani-plugin-orm"
+version = "0.1.0"
+edition = "2024"
+description = "Eloquent-style models, query builder, migrations and SQLite driver for the fornthulani micro HTTP framework."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/thomas666-beast/fornthulani-plugin-orm"
+keywords = ["fornthulani", "orm", "sqlite", "eloquent", "plugin"]
+categories = ["web-programming::http-server", "database"]
+
+[features]
+default = ["sqlite"]
+# Bundled SQLite driver (rusqlite). Other databases: implement `Connection`.
+sqlite = ["dep:rusqlite"]
+# `unique:` and `exists:` rules for fornthulani-plugin-validate.
+validation = ["dep:fornthulani-plugin-validate"]
+
+[dependencies]
+fornthulani = { path = "../fornthulani", version = "0.2" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"], optional = true }
+fornthulani-plugin-validate = { path = "../fornthulani-plugin-validate", version = "0.1", optional = true }
+
+[dev-dependencies]
+fornthulani-plugin-validate = { path = "../fornthulani-plugin-validate", version = "0.1" }
