@@ -1,5 +1,6 @@
 //! End-to-end ORM behaviour against an in-memory SQLite database.
 //! One test function, because the connection is a process-wide global.
+#![cfg(feature = "sqlite")]
 
 use fornthulani::ThulaniError;
 use fornthulani_plugin_orm::{

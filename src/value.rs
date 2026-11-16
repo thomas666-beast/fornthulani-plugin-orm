@@ -33,10 +33,10 @@ impl SqlValue {
     }
 
     /// A SQL literal, for `DEFAULT` clauses in migrations only.
-    pub(crate) fn to_literal(&self) -> String {
+    pub(crate) fn to_literal(&self, d: crate::conn::Dialect) -> String {
         match self {
             SqlValue::Null => "NULL".into(),
-            SqlValue::Bool(b) => (if *b { "1" } else { "0" }).into(),
+            SqlValue::Bool(b) => d.bool_literal(*b).into(),
             SqlValue::Int(i) => i.to_string(),
             SqlValue::Float(f) if f.is_finite() => f.to_string(),
             SqlValue::Float(_) => "NULL".into(),
@@ -53,6 +53,12 @@ macro_rules! from_int {
     )*};
 }
 from_int!(i8, i16, i32, i64, u8, u16, u32, isize);
+
+impl From<&SqlValue> for SqlValue {
+    fn from(v: &SqlValue) -> Self {
+        v.clone()
+    }
+}
 
 impl From<bool> for SqlValue {
     fn from(v: bool) -> Self {
@@ -96,4 +102,14 @@ impl<T: Into<SqlValue>> From<Option<T>> for SqlValue {
             None => SqlValue::Null,
         }
     }
+}
+
+/// `\x<hex>`, PostgreSQL's text form of binary data.
+pub(crate) fn hex_bytes(b: &[u8]) -> String {
+    let mut s = String::with_capacity(2 + b.len() * 2);
+    s.push_str("\\x");
+    for x in b {
+        s.push_str(&format!("{x:02x}"));
+    }
+    s
 }

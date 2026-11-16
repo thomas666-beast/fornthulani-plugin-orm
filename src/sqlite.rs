@@ -1,6 +1,6 @@
 //! SQLite driver (feature `sqlite`, on by default).
 
-use crate::conn::{Connection, ExecResult, Executor};
+use crate::conn::{Connection, Dialect, ExecResult, Executor, observe};
 use crate::error::{OrmError, OrmResult};
 use crate::value::{Row, SqlValue};
 use rusqlite::types::{Value as SqlRaw, ValueRef};
@@ -63,6 +63,16 @@ fn to_raw(v: &SqlValue) -> SqlRaw {
 }
 
 fn run_query(conn: &rusqlite::Connection, sql: &str, params: &[SqlValue]) -> OrmResult<Vec<Row>> {
+    observe(Dialect::Sqlite, sql, params, || {
+        run_query_inner(conn, sql, params)
+    })
+}
+
+fn run_query_inner(
+    conn: &rusqlite::Connection,
+    sql: &str,
+    params: &[SqlValue],
+) -> OrmResult<Vec<Row>> {
     let mut stmt = conn.prepare_cached(sql).map_err(map_err)?;
     let names: Vec<String> = stmt.column_names().iter().map(|s| s.to_string()).collect();
     let bound: Vec<SqlRaw> = params.iter().map(to_raw).collect();
@@ -81,8 +91,8 @@ fn run_query(conn: &rusqlite::Connection, sql: &str, params: &[SqlValue]) -> Orm
                     .map(Json::Number)
                     .unwrap_or(Json::Null),
                 ValueRef::Text(t) => Json::String(String::from_utf8_lossy(t).into_owned()),
-                // BLOB columns are not supported in this version.
-                ValueRef::Blob(_) => Json::Null,
+                // BLOBs come back as `\x<hex>` text, like PostgreSQL BYTEA.
+                ValueRef::Blob(b) => Json::String(crate::value::hex_bytes(b)),
             };
             map.insert(name.clone(), v);
         }
@@ -92,6 +102,16 @@ fn run_query(conn: &rusqlite::Connection, sql: &str, params: &[SqlValue]) -> Orm
 }
 
 fn run_execute(
+    conn: &rusqlite::Connection,
+    sql: &str,
+    params: &[SqlValue],
+) -> OrmResult<ExecResult> {
+    observe(Dialect::Sqlite, sql, params, || {
+        run_execute_inner(conn, sql, params)
+    })
+}
+
+fn run_execute_inner(
     conn: &rusqlite::Connection,
     sql: &str,
     params: &[SqlValue],
@@ -115,7 +135,9 @@ impl Executor for SqliteConnection {
         run_execute(&self.lock(), sql, params)
     }
     fn execute_batch(&self, sql: &str) -> OrmResult<()> {
-        self.lock().execute_batch(sql).map_err(map_err)
+        observe(Dialect::Sqlite, sql, &[], || {
+            self.lock().execute_batch(sql).map_err(map_err)
+        })
     }
 }
 
@@ -131,7 +153,9 @@ impl Executor for Tx<'_> {
         run_execute(self.0, sql, params)
     }
     fn execute_batch(&self, sql: &str) -> OrmResult<()> {
-        self.0.execute_batch(sql).map_err(map_err)
+        observe(Dialect::Sqlite, sql, &[], || {
+            self.0.execute_batch(sql).map_err(map_err)
+        })
     }
 }
 
